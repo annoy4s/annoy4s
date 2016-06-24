@@ -16,44 +16,44 @@
 #include "kissrandom.h"
 
 extern "C" {
-AnnoyIndexInterface<int32_t, float> *anCreateAngular(int f) {
+AnnoyIndexInterface<int32_t, float> *createAngular(int f) {
   return new AnnoyIndex<int32_t, float, Angular, Kiss64Random>(f);
 }
 
-AnnoyIndexInterface<int32_t, float> *anCreateEuclidean(int f) {
+AnnoyIndexInterface<int32_t, float> *createEuclidean(int f) {
   return new AnnoyIndex<int32_t, float, Euclidean, Kiss64Random>(f);
 }
 
-void anDeleteIndex(AnnoyIndexInterface<int32_t, float> *ptr) {
+void deleteIndex(AnnoyIndexInterface<int32_t, float> *ptr) {
   delete ptr;
 }
 
-void anAddItem(AnnoyIndexInterface<int32_t, float> *ptr, int item, float *w) {
+void addItem(AnnoyIndexInterface<int32_t, float> *ptr, int item, float *w) {
   ptr->add_item(item, w);
 }
 
-void anBuild(AnnoyIndexInterface<int32_t, float> *ptr, int q) {
+void build(AnnoyIndexInterface<int32_t, float> *ptr, int q) {
   ptr->build(q);
 }
 
-bool anSave(AnnoyIndexInterface<int32_t, float> *ptr, char *filename) {
+bool save(AnnoyIndexInterface<int32_t, float> *ptr, char *filename) {
   return ptr->save(filename);
 }
 
-void anUnload(AnnoyIndexInterface<int32_t, float> *ptr) {
+void unload(AnnoyIndexInterface<int32_t, float> *ptr) {
   ptr->unload();
 }
 
-bool anLoad(AnnoyIndexInterface<int32_t, float> *ptr, char *filename) {
+bool load(AnnoyIndexInterface<int32_t, float> *ptr, char *filename) {
   return ptr->load(filename);
 }
 
-float anGetDistance(AnnoyIndexInterface<int32_t, float> *ptr, int i, int j) {
+float getDistance(AnnoyIndexInterface<int32_t, float> *ptr, int i, int j) {
   return ptr->get_distance(i, j);
 }
 
-void anGetNnsByItem(AnnoyIndexInterface<int32_t, float> *ptr, int item, int n,
-                    int search_k, int *result, float *distances) {
+void getNnsByItem(AnnoyIndexInterface<int32_t, float> *ptr, int item, int n,
+                  int search_k, int *result, float *distances) {
   vector<int32_t> resultV;
   vector<float> distancesV;
   ptr->get_nns_by_item(item, n, search_k, &resultV, &distancesV);
@@ -61,15 +61,24 @@ void anGetNnsByItem(AnnoyIndexInterface<int32_t, float> *ptr, int item, int n,
   std::copy(distancesV.begin(), distancesV.end(), distances);
 }
 
-int anGetNItems(AnnoyIndexInterface<int32_t, float> *ptr) {
+void getNnsByVector(AnnoyIndexInterface<int32_t, float> *ptr, float *w, int n,
+                    int search_k, int *result, float *distances) {
+  vector<int32_t> resultV;
+  vector<float> distancesV;
+  ptr->get_nns_by_vector(w, n, search_k, &resultV, &distancesV);
+  std::copy(resultV.begin(), resultV.end(), result);
+  std::copy(distancesV.begin(), distancesV.end(), distances);
+}
+
+int getNItems(AnnoyIndexInterface<int32_t, float> *ptr) {
   return (int)ptr->get_n_items();
 }
 
-void anVerbose(AnnoyIndexInterface<int32_t, float> *ptr, bool v) {
+void verbose(AnnoyIndexInterface<int32_t, float> *ptr, bool v) {
   ptr->verbose(v);
 }
 
-void anGetItem(AnnoyIndexInterface<int32_t, float> *ptr, int item, float *v) {
+void getItem(AnnoyIndexInterface<int32_t, float> *ptr, int item, float *v) {
   ptr->get_item(item, v);
 }
 }
