@@ -35,7 +35,7 @@ class Annoy(
     val result = Array.fill(maxReturnSize)(-1)
     val distances = Array.fill(maxReturnSize)(-1.0f)
     Annoy.annoyLib.getNnsByVector(annoyIndex, vector.toArray, maxReturnSize, -1, result, distances)
-    result.toSeq.filter(_ != -1).map(indexToId.get).zip(distances.toSeq)
+    result.toList.filter(_ != -1).map(indexToId.get).map(_.toInt).zip(distances.toSeq)
   }
 
   def query(id: Int, maxReturnSize: Int) = {
@@ -44,7 +44,7 @@ class Annoy(
       val result = Array.fill(maxReturnSize)(-1)
       val distances = Array.fill(maxReturnSize)(-1.0f)
       Annoy.annoyLib.getNnsByItem(annoyIndex, index, maxReturnSize, -1, result, distances)
-      Some(result.toSeq.filter(_ != -1).map(indexToId.get).zip(distances.toSeq))
+      Some(result.toList.filter(_ != -1).map(indexToId.get).map(_.toInt).zip(distances.toSeq))
     } else None
   }
 }
@@ -62,42 +62,45 @@ object Annoy {
     val memoryMode = outputDir == null
     
     if (!memoryMode) {
-      require(File(outputDir).notExists, "Output directory already exist.")
+      require(File(outputDir).notExists || File(outputDir).isEmpty, "Output directory is not empty.")
       File(outputDir).createIfNotExists(true)
     }
     
-    val source = Source.fromFile(inputFile)
+    def inputLines = Source.fromFile(inputFile).getLines
     
-    val db = if (memoryMode) {
+    val db = if (!memoryMode) {
       DBMaker.fileDB((File(outputDir) / "mapping").toJava).make()
     } else {
       DBMaker.memoryDB().make()
     }
     
     val idToIndex = db.hashMap("idToIndex", Serializer.INTEGER, Serializer.INTEGER).create()
-    source.getLines.map(_.split(" ").head.toInt).zipWithIndex.foreach {
+    inputLines.map(_.split(" ").head.toInt).zipWithIndex.foreach {
       case (id, index) => idToIndex.put(id, index)
     }
     db.commit()
     
     val indexToId = db.hashMap("indexToId", Serializer.INTEGER, Serializer.INTEGER).create()
-    source.getLines.map(_.split(" ").head.toInt).zipWithIndex.foreach {
-      case (id, index) => idToIndex.put(index, id)
+    inputLines.map(_.split(" ").head.toInt).zipWithIndex.foreach {
+      case (id, index) => indexToId.put(index, id)
     }
     db.commit()
 
-    val dimension = source.getLines.next.split(" ").tail.size
+    val dimension = inputLines.next.split(" ").tail.size
     val annoyIndex = metric match {
       case Angular => annoyLib.createAngular(dimension)
       case Euclidean => annoyLib.createEuclidean(dimension)
     }
     
-    source.getLines
+    annoyLib.verbose(annoyIndex, verbose)
+    
+    inputLines
       .map(_.split(" "))
       .foreach { seq =>
         val id = seq.head.toInt
+        val index = idToIndex.get(id)
         val vector = seq.tail.map(_.toFloat)
-        annoyLib.addItem(annoyIndex, id, vector)
+        annoyLib.addItem(annoyIndex, index, vector)
       }
     
     annoyLib.build(annoyIndex, numOfTrees)

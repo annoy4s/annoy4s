@@ -15,7 +15,27 @@
 package annoy4s
 
 import org.scalatest._
+import better.files._
 
 class AnnoySpec extends FlatSpec with Matchers {
-  
+  "Annoy" should "create index and query the vectors" in {
+    val inputFile = File.newTemporaryFile()
+    inputFile.toJava.deleteOnExit()
+    inputFile.appendLines(Seq(
+      "10 1.0 1.0",
+      "11 2.0 1.0",
+      "12 2.0 2.0",
+      "13 3.0 2.0"
+    ):_*)
+    
+    val outputDir = File.newTemporaryDirectory()
+    outputDir.toJava.deleteOnExit()
+    
+    val annoy = Annoy.create(inputFile.pathAsString, 10, outputDir.pathAsString, Euclidean)
+    val res = annoy.query(10, 4)
+    res.get.map(_._1) shouldBe Seq(10, 11, 12, 13)
+    res.get.map(_._2).zip(Seq(0.0f, 1.0f, 1.414f, 2.236f)).foreach{
+      case (a, b) => a shouldBe b +- 0.1f
+    }
+  }
 }
