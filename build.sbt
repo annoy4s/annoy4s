@@ -1,3 +1,7 @@
+import com.sun.jna.Platform
+
+val compileNative = taskKey[Unit]("Compile cpp into shared library.")
+
 lazy val root = (project in file(".")).settings(
   name := "annoy4s",
   version := "0.1.0-SNAPSHOT",
@@ -14,7 +18,7 @@ lazy val root = (project in file(".")).settings(
   ),
   fork := true,
   organization := "net.pishen",
-  licenses += ("Apache-2.0", url("https://www.apache.org/licenses/LICENSE-2.0.html")),
+  licenses += "Apache-2.0" -> url("https://www.apache.org/licenses/LICENSE-2.0.html"),
   homepage := Some(url("https://github.com/pishen/annoy4s")),
   pomExtra := (
     <scm>
@@ -27,5 +31,17 @@ lazy val root = (project in file(".")).settings(
         <name>Pishen Tsai</name>
       </developer>
     </developers>
-  )
+  ),
+  compileNative := {
+    val libDir = file(s"src/main/resources/${Platform.RESOURCE_PREFIX}")
+    if (!libDir.exists) {
+      libDir.mkdirs()
+    }
+    val lib = libDir / "libannoy.so"
+    val source = file("src/main/cpp/annoyjava.cpp")
+    val cmd = s"g++ -o ${lib.getAbsolutePath} -shared -fPIC ${source.getAbsolutePath}"
+    println(cmd)
+    import scala.sys.process._
+    cmd.!
+  }
 )

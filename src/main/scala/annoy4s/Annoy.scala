@@ -76,13 +76,24 @@ object Annoy {
     
     val idToIndex = db.hashMap("idToIndex", Serializer.INTEGER, Serializer.INTEGER).create()
     inputLines.map(_.split(" ").head.toInt).zipWithIndex.foreach {
-      case (id, index) => idToIndex.put(id, index)
+      case (id, index) =>
+        if (verbose) {
+          print(s"idToIndex: ${index}\r")
+        }
+        idToIndex.put(id, index)
     }
     db.commit()
+    if (verbose) {
+      println()
+    }
     
     val indexToId = db.hashMap("indexToId", Serializer.INTEGER, Serializer.INTEGER).create()
     inputLines.map(_.split(" ").head.toInt).zipWithIndex.foreach {
-      case (id, index) => indexToId.put(index, id)
+      case (id, index) =>
+        if (verbose) {
+          print(s"indexToId: ${index}\r")
+        }
+        indexToId.put(index, id)
     }
     db.commit()
 
