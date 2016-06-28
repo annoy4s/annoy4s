@@ -53,5 +53,5 @@ annoy.close()
 // load an created index
 val reloadedAnnoy = Annoy.load("./annoy_result/", Euclidean)
 
-val realodedResult: Seq[(Int, Float)] = annoy.query(itemId, 30)
+val reloadedResult: Seq[(Int, Float)] = annoy.query(itemId, 30)
 ```
