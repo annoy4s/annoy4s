@@ -1,6 +1,6 @@
 # annoy4s
 
-A JNA wrapper around [spotify/annoy](https://github.com/spotify/annoy) which calls the C++ library of annoy directly from Java.
+A JNA wrapper around [spotify/annoy](https://github.com/spotify/annoy) which calls the C++ library of annoy directly from Scala/JVM.
 
 ## Installation
 
