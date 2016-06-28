@@ -44,7 +44,7 @@ val result: Seq[(Int, Float)] = annoy.query(itemId, maxReturnSize = 30)
 
 To use the index in disk mode, one need to provide an `outputDir`:
 ```scala
-val annoy = Annoy.create("./input_vectors", numOfTrees = 10, outputDir = "./annoy_result/", metric = Euclidean, verbose = true)
+val annoy = Annoy.create("./input_vectors", 10, outputDir = "./annoy_result/", Euclidean)
 
 val result: Seq[(Int, Float)] = annoy.query(itemId, maxReturnSize = 30)
 
