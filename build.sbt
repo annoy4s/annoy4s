@@ -8,7 +8,7 @@ lazy val root = (project in file(".")).settings(
   scalaVersion := "2.11.8",
   crossScalaVersions := Seq("2.10.6", "2.11.8"),
   libraryDependencies ++= Seq(
-    "com.github.pathikrit" %% "better-files" % "2.16.0",
+    "com.github.pathikrit" %% "better-files" % "2.14.0",
     "net.java.dev.jna" % "jna" % "4.2.2",
     "org.mapdb" % "mapdb" % "3.0.0-RC2",
     "org.slf4s" %% "slf4s-api" % "1.7.12",
