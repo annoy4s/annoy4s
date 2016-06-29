@@ -6,19 +6,26 @@ A JNA wrapper around [spotify/annoy](https://github.com/spotify/annoy) which cal
 
 ## Installation
 
+For linux-x86-64 users, just add the library directly from bintray:
+```
+resolvers += Resolver.bintrayRepo("pishen", "maven")
+
+libraryDependencies += "net.pishen" %% "annoy4s" % "0.1.0"
+```
+
 You have to compile the native library by yourself if you met an error like this when using annoy4s:
 ```
 java.lang.UnsatisfiedLinkError: Unable to load library 'annoy': Native library
 ```
 
-To compile the native library and install annoy4s on local machine, first clone this repository, then, type the following commands in sbt:
-```
-> compileNative
-> publishLocal
-```
-(Note that g++ installation is required. You can run `test` in sbt to see if the native library is successfully compiled.)
+To compile the native library and install annoy4s on local machine, you have to
+1. Clone this repository.
+2. Check the values of `organization` and `version` in `build.sbt`, you may change it to the value you want, it's recommended to let `version` have the `-SNAPSHOT` suffix.
+3. Run `compileNative` in sbt (Note that g++ installation is required).
+4. Run `test` in sbt to see if the native library is successfully compiled.
+5. Run `publishLocal` in sbt to install annoy4s on your machine.
 
-Now you can add the library dependency as:
+Now you can add the library dependency as (organization and version may be different according to your settings):
 ```
 libraryDependencies += "net.pishen" %% "annoy4s" % "0.1.0-SNAPSHOT"
 ```
