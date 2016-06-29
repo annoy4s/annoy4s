@@ -19,6 +19,7 @@ java.lang.UnsatisfiedLinkError: Unable to load library 'annoy': Native library
 ```
 
 To compile the native library and install annoy4s on local machine, you have to
+
 1. Clone this repository.
 2. Check the values of `organization` and `version` in `build.sbt`, you may change it to the value you want, it's recommended to let `version` have the `-SNAPSHOT` suffix.
 3. Run `compileNative` in sbt (Note that g++ installation is required).
