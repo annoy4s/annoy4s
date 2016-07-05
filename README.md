@@ -61,7 +61,7 @@ val result: Seq[(Int, Float)] = annoy.query(itemId, maxReturnSize = 30)
 annoy.close()
 
 // load an created index
-val reloadedAnnoy = Annoy.load("./annoy_result/", Euclidean)
+val reloadedAnnoy = Annoy.load("./annoy_result/")
 
-val reloadedResult: Seq[(Int, Float)] = annoy.query(itemId, 30)
+val reloadedResult: Seq[(Int, Float)] = reloadedAnnoy.query(itemId, 30)
 ```
