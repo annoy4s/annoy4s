@@ -50,7 +50,7 @@ class AnnoySpec extends FlatSpec with Matchers {
     
     annoy.close()
     
-    val annoyReload = Annoy.load(outputDir.pathAsString, Euclidean)
+    val annoyReload = Annoy.load(outputDir.pathAsString)
     checkEuclideanResult(annoyReload.query(10, 4))
   }
   
@@ -92,7 +92,7 @@ class AnnoySpec extends FlatSpec with Matchers {
     
     annoy.close()
     
-    val annoyReload = Annoy.load(outputDir.pathAsString, Angular)
+    val annoyReload = Annoy.load(outputDir.pathAsString)
     checkAngularResult(annoyReload.query(10, 4))
   }
   

@@ -122,23 +122,26 @@ object Annoy {
       db.close()
       annoyLib.save(annoyIndex, (File(outputDir) / "annoy-index").pathAsString)
       annoyLib.deleteIndex(annoyIndex)
+      (File(outputDir) / "metric").overwrite {
+        metric match {
+          case Angular => "Angular"
+          case Euclidean => "Euclidean"
+        }
+      }
       (File(outputDir) / "dimension").overwrite(dimension.toString)
-      load(outputDir, metric)
+      load(outputDir)
     }
   }
 
-  def load(
-    annoyDir: String,
-    metric: Metric = Angular
-  ): Annoy = {
+  def load(annoyDir: String): Annoy = {
     val db = DBMaker.fileDB((File(annoyDir) / "mapping").toJava).readOnly().closeOnJvmShutdown().make()
     val idToIndex = db.hashMap("idToIndex", Serializer.INTEGER, Serializer.INTEGER).open()
     val indexToId = db.hashMap("indexToId", Serializer.INTEGER, Serializer.INTEGER).open()
     
     val dimension = (File(annoyDir) / "dimension").lines.head.toInt
-    val annoyIndex = metric match {
-      case Angular => annoyLib.createAngular(dimension)
-      case Euclidean => annoyLib.createEuclidean(dimension)
+    val annoyIndex = (File(annoyDir) / "metric").lines.head match {
+      case "Angular" => annoyLib.createAngular(dimension)
+      case "Euclidean" => annoyLib.createEuclidean(dimension)
     }
     annoyLib.load(annoyIndex, (File(annoyDir) / "annoy-index").pathAsString)
     

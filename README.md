@@ -10,7 +10,7 @@ For linux-x86-64 users, just add the library directly from bintray:
 ```
 resolvers += Resolver.bintrayRepo("pishen", "maven")
 
-libraryDependencies += "net.pishen" %% "annoy4s" % "0.1.0"
+libraryDependencies += "net.pishen" %% "annoy4s" % "0.2.0"
 ```
 
 You have to compile the native library by yourself if you met an error like this when using annoy4s:
@@ -28,7 +28,7 @@ To compile the native library and install annoy4s on local machine, you have to
 
 Now you can add the library dependency as (organization and version may be different according to your settings):
 ```
-libraryDependencies += "net.pishen" %% "annoy4s" % "0.1.0-SNAPSHOT"
+libraryDependencies += "net.pishen" %% "annoy4s" % "0.2.0-SNAPSHOT"
 ```
 
 ## Usage
@@ -61,7 +61,7 @@ val result: Seq[(Int, Float)] = annoy.query(itemId, maxReturnSize = 30)
 annoy.close()
 
 // load an created index
-val reloadedAnnoy = Annoy.load("./annoy_result/", Euclidean)
+val reloadedAnnoy = Annoy.load("./annoy_result/")
 
-val reloadedResult: Seq[(Int, Float)] = annoy.query(itemId, 30)
+val reloadedResult: Seq[(Int, Float)] = reloadedAnnoy.query(itemId, 30)
 ```
