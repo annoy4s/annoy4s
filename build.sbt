@@ -4,7 +4,7 @@ val compileNative = taskKey[Unit]("Compile cpp into shared library.")
 
 lazy val root = (project in file(".")).settings(
   name := "annoy4s",
-  version := "0.1.0-SNAPSHOT",
+  version := "0.2.0-SNAPSHOT",
   scalaVersion := "2.11.8",
   crossScalaVersions := Seq("2.10.6", "2.11.8"),
   libraryDependencies ++= Seq(
