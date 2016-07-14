@@ -43,7 +43,6 @@ class AnnoySpec extends FlatSpec with Matchers {
     val inputFile = getEuclideanInputFile
     
     val outputDir = File.newTemporaryDirectory()
-    outputDir.toJava.deleteOnExit()
     
     val annoy = Annoy.create(inputFile.pathAsString, 10, outputDir.pathAsString, Euclidean)
     checkEuclideanResult(annoy.query(10, 4))
@@ -52,6 +51,9 @@ class AnnoySpec extends FlatSpec with Matchers {
     
     val annoyReload = Annoy.load(outputDir.pathAsString)
     checkEuclideanResult(annoyReload.query(10, 4))
+
+    annoyReload.close()
+    outputDir.delete()
   }
   
   it should "create and query Euclidean memory index" in {
@@ -85,7 +87,6 @@ class AnnoySpec extends FlatSpec with Matchers {
     val inputFile = getAngularInputFile
     
     val outputDir = File.newTemporaryDirectory()
-    outputDir.toJava.deleteOnExit()
     
     val annoy = Annoy.create(inputFile.pathAsString, 10, outputDir.pathAsString, Angular)
     checkAngularResult(annoy.query(10, 4))
@@ -94,6 +95,9 @@ class AnnoySpec extends FlatSpec with Matchers {
     
     val annoyReload = Annoy.load(outputDir.pathAsString)
     checkAngularResult(annoyReload.query(10, 4))
+
+    annoyReload.close()
+    outputDir.delete()
   }
   
   it should "create and query Angular memory index" in {
