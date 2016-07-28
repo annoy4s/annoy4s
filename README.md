@@ -11,7 +11,7 @@ For linux-x86-64 users, just add the library directly from bintray:
 ```
 resolvers += Resolver.bintrayRepo("pishen", "maven")
 
-libraryDependencies += "net.pishen" %% "annoy4s" % "0.2.0"
+libraryDependencies += "net.pishen" %% "annoy4s" % version
 ```
 
 You have to compile the native library by yourself if you met an error like this when using annoy4s:
@@ -29,7 +29,7 @@ To compile the native library and install annoy4s on local machine, you have to
 
 Now you can add the library dependency as (organization and version may be different according to your settings):
 ```
-libraryDependencies += "net.pishen" %% "annoy4s" % "0.2.0-SNAPSHOT"
+libraryDependencies += "net.pishen" %% "annoy4s" % version
 ```
 
 ## Usage
@@ -40,7 +40,7 @@ import annoy4s._
 
 val annoy = Annoy.create("./input_vectors", numOfTrees = 10, metric = Euclidean, verbose = true)
 
-val result: Seq[(Int, Float)] = annoy.query(itemId, maxReturnSize = 30)
+val result: Option[Seq[(Int, Float)]] = annoy.query(itemId, maxReturnSize = 30)
 ```
 
 * The format of `./input_vectors` is `<item id> <vector>` for each line, here is an example:
@@ -57,12 +57,12 @@ To use the index in disk mode, one need to provide an `outputDir`:
 ```scala
 val annoy = Annoy.create("./input_vectors", 10, outputDir = "./annoy_result/", Euclidean)
 
-val result: Seq[(Int, Float)] = annoy.query(itemId, maxReturnSize = 30)
+val result: Option[Seq[(Int, Float)]] = annoy.query(itemId, maxReturnSize = 30)
 
 annoy.close()
 
 // load an created index
 val reloadedAnnoy = Annoy.load("./annoy_result/")
 
-val reloadedResult: Seq[(Int, Float)] = reloadedAnnoy.query(itemId, 30)
+val reloadedResult: Option[Seq[(Int, Float)]] = reloadedAnnoy.query(itemId, 30)
 ```

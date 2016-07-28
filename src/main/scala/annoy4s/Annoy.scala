@@ -16,18 +16,15 @@ package annoy4s
 
 import com.sun.jna._
 import better.files._
-import org.mapdb._
 import scala.io.Source
 
 class Annoy(
-  db: DB,
-  idToIndex: HTreeMap[Integer, Integer],
-  indexToId: HTreeMap[Integer, Integer],
+  idToIndex: Map[Int, Int],
+  indexToId: Seq[Int],
   annoyIndex: Pointer,
   dimension: Int
 ) {
   def close() = {
-    db.close()
     Annoy.annoyLib.deleteIndex(annoyIndex)
   }
 
@@ -35,17 +32,16 @@ class Annoy(
     val result = Array.fill(maxReturnSize)(-1)
     val distances = Array.fill(maxReturnSize)(-1.0f)
     Annoy.annoyLib.getNnsByVector(annoyIndex, vector.toArray, maxReturnSize, -1, result, distances)
-    result.toList.filter(_ != -1).map(indexToId.get).map(_.toInt).zip(distances.toSeq)
+    result.toList.filter(_ != -1).map(indexToId.apply).zip(distances.toSeq)
   }
 
   def query(id: Int, maxReturnSize: Int) = {
-    if (idToIndex.containsKey(id)) {
-      val index = idToIndex.get(id)
+    idToIndex.get(id).map { index =>
       val result = Array.fill(maxReturnSize)(-1)
       val distances = Array.fill(maxReturnSize)(-1.0f)
       Annoy.annoyLib.getNnsByItem(annoyIndex, index, maxReturnSize, -1, result, distances)
-      Some(result.toList.filter(_ != -1).map(indexToId.get).map(_.toInt).zip(distances.toSeq))
-    } else None
+      result.toList.filter(_ != -1).map(indexToId.apply).zip(distances.toSeq)
+    }
   }
 }
 
@@ -59,43 +55,14 @@ object Annoy {
     metric: Metric = Angular,
     verbose: Boolean = false
   ): Annoy = {
-    val memoryMode = outputDir == null
+    val diskMode = outputDir != null
     
-    if (!memoryMode) {
+    if (diskMode) {
       require(File(outputDir).notExists || File(outputDir).isEmpty, "Output directory is not empty.")
       File(outputDir).createIfNotExists(true)
     }
     
     def inputLines = Source.fromFile(inputFile).getLines
-    
-    val db = if (!memoryMode) {
-      DBMaker.fileDB((File(outputDir) / "mapping").toJava).make()
-    } else {
-      DBMaker.memoryDB().make()
-    }
-    
-    val idToIndex = db.hashMap("idToIndex", Serializer.INTEGER, Serializer.INTEGER).create()
-    inputLines.map(_.split(" ").head.toInt).zipWithIndex.foreach {
-      case (id, index) =>
-        if (verbose) {
-          print(s"idToIndex: ${index}\r")
-        }
-        idToIndex.put(id, index)
-    }
-    db.commit()
-    if (verbose) {
-      println()
-    }
-    
-    val indexToId = db.hashMap("indexToId", Serializer.INTEGER, Serializer.INTEGER).create()
-    inputLines.map(_.split(" ").head.toInt).zipWithIndex.foreach {
-      case (id, index) =>
-        if (verbose) {
-          print(s"indexToId: ${index}\r")
-        }
-        indexToId.put(index, id)
-    }
-    db.commit()
 
     val dimension = inputLines.next.split(" ").tail.size
     val annoyIndex = metric match {
@@ -107,36 +74,42 @@ object Annoy {
     
     inputLines
       .map(_.split(" "))
-      .foreach { seq =>
-        val id = seq.head.toInt
-        val index = idToIndex.get(id)
-        val vector = seq.tail.map(_.toFloat)
-        annoyLib.addItem(annoyIndex, index, vector)
+      .zipWithIndex
+      .foreach {
+        case (seq, index) =>
+          val id = seq.head.toInt
+          val vector = seq.tail.map(_.toFloat)
+          annoyLib.addItem(annoyIndex, index, vector)
       }
     
     annoyLib.build(annoyIndex, numOfTrees)
     
-    if (memoryMode) {
-      new Annoy(db, idToIndex, indexToId, annoyIndex, dimension)
-    } else {
-      db.close()
-      annoyLib.save(annoyIndex, (File(outputDir) / "annoy-index").pathAsString)
-      annoyLib.deleteIndex(annoyIndex)
+    if (diskMode) {
+      (File(outputDir) / "ids").printLines(inputLines.map(_.split(" ").head))
+      (File(outputDir) / "dimension").overwrite(dimension.toString)
       (File(outputDir) / "metric").overwrite {
         metric match {
           case Angular => "Angular"
           case Euclidean => "Euclidean"
         }
       }
-      (File(outputDir) / "dimension").overwrite(dimension.toString)
+      annoyLib.save(annoyIndex, (File(outputDir) / "annoy-index").pathAsString)
+      annoyLib.deleteIndex(annoyIndex)
       load(outputDir)
+    } else {
+      new Annoy(
+        inputLines.map(_.split(" ").head.toInt).zipWithIndex.toMap,
+        inputLines.map(_.split(" ").head.toInt).toSeq,
+        annoyIndex,
+        dimension
+      )
     }
   }
 
   def load(annoyDir: String): Annoy = {
-    val db = DBMaker.fileDB((File(annoyDir) / "mapping").toJava).readOnly().closeOnJvmShutdown().make()
-    val idToIndex = db.hashMap("idToIndex", Serializer.INTEGER, Serializer.INTEGER).open()
-    val indexToId = db.hashMap("indexToId", Serializer.INTEGER, Serializer.INTEGER).open()
+    val ids = (File(annoyDir) / "ids")
+    val idToIndex = ids.lineIterator.toSeq.map(_.toInt).zipWithIndex.toMap
+    val indexToId = ids.lineIterator.toSeq.map(_.toInt)
     
     val dimension = (File(annoyDir) / "dimension").lines.head.toInt
     val annoyIndex = (File(annoyDir) / "metric").lines.head match {
@@ -145,7 +118,7 @@ object Annoy {
     }
     annoyLib.load(annoyIndex, (File(annoyDir) / "annoy-index").pathAsString)
     
-    new Annoy(db, idToIndex, indexToId, annoyIndex, dimension)
+    new Annoy(idToIndex, indexToId, annoyIndex, dimension)
   }
 }
 
