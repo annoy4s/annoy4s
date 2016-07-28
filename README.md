@@ -66,3 +66,4 @@ val reloadedAnnoy = Annoy.load("./annoy_result/")
 
 val reloadedResult: Option[Seq[(Int, Float)]] = reloadedAnnoy.query(itemId, 30)
 ```
+
