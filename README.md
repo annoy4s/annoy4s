@@ -1,7 +1,7 @@
 # annoy4s
 
 [![Build Status](https://travis-ci.org/pishen/annoy4s.svg?branch=master)](https://travis-ci.org/pishen/annoy4s)
-[![Bintray](https://img.shields.io/bintray/v/pishen/maven/annoy4s.svg?maxAge=2592000)](https://bintray.com/pishen/maven/annoy4s/view)
+[![Download](https://api.bintray.com/packages/pishen/maven/annoy4s/images/download.svg)](https://bintray.com/pishen/maven/annoy4s/_latestVersion)
 
 A JNA wrapper around [spotify/annoy](https://github.com/spotify/annoy) which calls the C++ library of annoy directly from Scala/JVM.
 
