@@ -35,9 +35,9 @@ lazy val root = (project in file(".")).settings(
     if (!libDir.exists) {
       libDir.mkdirs()
     }
-    val lib = libDir / "libannoy.so"
+    val lib = libDir / (if (Platform.isMac) "libannoy.dylib" else "libannoy.so")
     val source = file("src/main/cpp/annoyjava.cpp")
-    val cmd = s"g++ -o ${lib.getAbsolutePath} -shared -fPIC ${source.getAbsolutePath}"
+    val cmd = s"g++ -o ${lib.getAbsolutePath} -shared ${if (Platform.isMac) "-dynamiclib" else "-fPIC"} ${source.getAbsolutePath}"
     println(cmd)
     import scala.sys.process._
     cmd.!
