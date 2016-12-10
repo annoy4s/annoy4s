@@ -85,7 +85,7 @@ object Annoy {
     annoyLib.build(annoyIndex, numOfTrees)
     
     if (diskMode) {
-      (File(outputDir) / "ids").printLines(inputLines.map(_.split(" ").head))
+      (File(outputDir) / "ids").overwrite("").appendLines(inputLines.map(_.split(" ").head).toSeq:_*)
       (File(outputDir) / "dimension").overwrite(dimension.toString)
       (File(outputDir) / "metric").overwrite {
         metric match {
@@ -108,8 +108,8 @@ object Annoy {
 
   def load(annoyDir: String): Annoy = {
     val ids = (File(annoyDir) / "ids")
-    val idToIndex = ids.lineIterator.toSeq.map(_.toInt).zipWithIndex.toMap
-    val indexToId = ids.lineIterator.toSeq.map(_.toInt)
+    val idToIndex = ids.lines.map(_.toInt).toSeq.zipWithIndex.toMap
+    val indexToId = ids.lines.map(_.toInt).toSeq
     
     val dimension = (File(annoyDir) / "dimension").lines.head.toInt
     val annoyIndex = (File(annoyDir) / "metric").lines.head match {
