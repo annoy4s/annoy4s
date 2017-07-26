@@ -45,12 +45,12 @@ class AnnoySpec extends FlatSpec with Matchers {
     val outputDir = File.newTemporaryDirectory()
     
     val annoy = Annoy.create[Int](inputFile.pathAsString, 10, outputDir.pathAsString, Euclidean)
-    checkEuclideanResult(annoy.query(10, 4, -1))
+    checkEuclideanResult(annoy.query(10, 4))
 
     annoy.close()
 
     val annoyReload = Annoy.load[Int](outputDir.pathAsString)
-    checkEuclideanResult(annoyReload.query(10, 4, -1))
+    checkEuclideanResult(annoyReload.query(10, 4))
 
     annoyReload.close()
     outputDir.delete()
@@ -60,7 +60,7 @@ class AnnoySpec extends FlatSpec with Matchers {
     val inputFile = getEuclideanInputFile
 
     val annoy = Annoy.create[Int](inputFile.pathAsString, 10, metric = Euclidean)
-    checkEuclideanResult(annoy.query(10, 4, -1))
+    checkEuclideanResult(annoy.query(10, 4))
   }
 
   def getAngularInputFile = {
@@ -89,12 +89,12 @@ class AnnoySpec extends FlatSpec with Matchers {
     val outputDir = File.newTemporaryDirectory()
 
     val annoy = Annoy.create[Int](inputFile.pathAsString, 10, outputDir.pathAsString, Angular)
-    checkAngularResult(annoy.query(10, 4, -1))
+    checkAngularResult(annoy.query(10, 4))
 
     annoy.close()
 
     val annoyReload = Annoy.load[Int](outputDir.pathAsString)
-    checkAngularResult(annoyReload.query(10, 4, -1))
+    checkAngularResult(annoyReload.query(10, 4))
 
     annoyReload.close()
     outputDir.delete()
@@ -104,7 +104,7 @@ class AnnoySpec extends FlatSpec with Matchers {
     val inputFile = getAngularInputFile
 
     val annoy = Annoy.create[Int](inputFile.pathAsString, 10, metric = Angular)
-    checkAngularResult(annoy.query(10, 4, -1))
+    checkAngularResult(annoy.query(10, 4))
   }
 
   def getStringAngularInputFile = {
@@ -133,12 +133,12 @@ class AnnoySpec extends FlatSpec with Matchers {
     val outputDir = File.newTemporaryDirectory()
 
     val annoy = Annoy.create[String](inputFile.pathAsString, 10, outputDir.pathAsString, Angular)
-    checkStringAngularResult(annoy.query("a", 4, -1))
+    checkStringAngularResult(annoy.query("a", 4))
 
     annoy.close()
 
     val annoyReload = Annoy.load[String](outputDir.pathAsString)
-    checkStringAngularResult(annoyReload.query("a", 4, -1))
+    checkStringAngularResult(annoyReload.query("a", 4))
 
     annoyReload.close()
     outputDir.delete()

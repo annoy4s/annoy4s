@@ -32,12 +32,16 @@ class Annoy[T](
     Annoy.annoyLib.deleteIndex(annoyIndex)
   }
 
+  def query(vector: Seq[Float], maxReturnSize: Int): Seq[(T, Float)] = query(vector, maxReturnSize, -1)
+
   def query(vector: Seq[Float], maxReturnSize: Int, searchK: Int) = {
     val result = Array.fill(maxReturnSize)(-1)
     val distances = Array.fill(maxReturnSize)(-1.0f)
     Annoy.annoyLib.getNnsByVector(annoyIndex, vector.toArray, maxReturnSize, searchK, result, distances)
     result.toList.filter(_ != -1).map(indexToId.apply).zip(distances.toSeq)
   }
+
+  def query(id: T, maxReturnSize: Int): Option[Seq[(T, Float)]] = query(id, maxReturnSize, -1)
 
   def query(id: T, maxReturnSize: Int, searchK: Int) = {
     idToIndex.get(id).map { index =>
