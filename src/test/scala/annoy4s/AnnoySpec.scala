@@ -44,25 +44,25 @@ class AnnoySpec extends FlatSpec with Matchers {
     
     val outputDir = File.newTemporaryDirectory()
     
-    val annoy = Annoy.create(inputFile.pathAsString, 10, outputDir.pathAsString, Euclidean)
-    checkEuclideanResult(annoy.query(10, 4))
-    
+    val annoy = Annoy.create[Int](inputFile.pathAsString, 10, outputDir.pathAsString, Euclidean)
+    checkEuclideanResult(annoy.query(10, 4, -1))
+
     annoy.close()
-    
-    val annoyReload = Annoy.load(outputDir.pathAsString)
-    checkEuclideanResult(annoyReload.query(10, 4))
+
+    val annoyReload = Annoy.load[Int](outputDir.pathAsString)
+    checkEuclideanResult(annoyReload.query(10, 4, -1))
 
     annoyReload.close()
     outputDir.delete()
   }
-  
+
   it should "create and query Euclidean memory index" in {
     val inputFile = getEuclideanInputFile
-    
-    val annoy = Annoy.create(inputFile.pathAsString, 10, metric = Euclidean)
-    checkEuclideanResult(annoy.query(10, 4))
+
+    val annoy = Annoy.create[Int](inputFile.pathAsString, 10, metric = Euclidean)
+    checkEuclideanResult(annoy.query(10, 4, -1))
   }
-  
+
   def getAngularInputFile = {
     val inputFile = File.newTemporaryFile()
     inputFile.toJava.deleteOnExit()
@@ -72,38 +72,76 @@ class AnnoySpec extends FlatSpec with Matchers {
       "12 0.0 3.0",
       "13 -5.0 0.0"
     ):_*)
-    
+
     inputFile
   }
-  
+
   def checkAngularResult(res: Option[Seq[(Int, Float)]]) = {
     res.get.map(_._1) shouldBe Seq(10, 11, 12, 13)
     res.get.map(_._2).zip(Seq(0.0f, 0.765f, 1.414f, 2.0f)).foreach{
       case (a, b) => a shouldBe b +- 0.001f
     }
   }
-  
+
   it should "create/load and query Angular file index" in {
     val inputFile = getAngularInputFile
-    
+
     val outputDir = File.newTemporaryDirectory()
-    
-    val annoy = Annoy.create(inputFile.pathAsString, 10, outputDir.pathAsString, Angular)
-    checkAngularResult(annoy.query(10, 4))
-    
+
+    val annoy = Annoy.create[Int](inputFile.pathAsString, 10, outputDir.pathAsString, Angular)
+    checkAngularResult(annoy.query(10, 4, -1))
+
     annoy.close()
-    
-    val annoyReload = Annoy.load(outputDir.pathAsString)
-    checkAngularResult(annoyReload.query(10, 4))
+
+    val annoyReload = Annoy.load[Int](outputDir.pathAsString)
+    checkAngularResult(annoyReload.query(10, 4, -1))
 
     annoyReload.close()
     outputDir.delete()
   }
-  
+
   it should "create and query Angular memory index" in {
     val inputFile = getAngularInputFile
-    
-    val annoy = Annoy.create(inputFile.pathAsString, 10, metric = Angular)
-    checkAngularResult(annoy.query(10, 4))
+
+    val annoy = Annoy.create[Int](inputFile.pathAsString, 10, metric = Angular)
+    checkAngularResult(annoy.query(10, 4, -1))
   }
+
+  def getStringAngularInputFile = {
+    val inputFile = File.newTemporaryFile()
+    inputFile.toJava.deleteOnExit()
+    inputFile.appendLines(Seq(
+      "a 2.0 0.0",
+      "b 1.0 1.0",
+      "c 0.0 3.0",
+      "d -5.0 0.0"
+    ):_*)
+
+    inputFile
+  }
+
+  def checkStringAngularResult(res: Option[Seq[(String, Float)]]) = {
+    res.get.map(_._1) shouldBe Seq("a", "b", "c", "d")
+    res.get.map(_._2).zip(Seq(0.0f, 0.765f, 1.414f, 2.0f)).foreach{
+      case (a, b) => a shouldBe b +- 0.001f
+    }
+  }
+
+  it should "create/load and query Angular file index with a String as a key" in {
+    val inputFile = getStringAngularInputFile
+
+    val outputDir = File.newTemporaryDirectory()
+
+    val annoy = Annoy.create[String](inputFile.pathAsString, 10, outputDir.pathAsString, Angular)
+    checkStringAngularResult(annoy.query("a", 4, -1))
+
+    annoy.close()
+
+    val annoyReload = Annoy.load[String](outputDir.pathAsString)
+    checkStringAngularResult(annoyReload.query("a", 4, -1))
+
+    annoyReload.close()
+    outputDir.delete()
+  }
+
 }

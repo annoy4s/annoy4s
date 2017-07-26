@@ -14,13 +14,17 @@
 
 package annoy4s
 
-import com.sun.jna._
+import java.util.UUID
+
+import annoy4s.Converters.KeyConverter
 import better.files._
+import com.sun.jna._
+
 import scala.io.Source
 
-class Annoy(
-  idToIndex: Map[Int, Int],
-  indexToId: Seq[Int],
+class Annoy[T](
+  idToIndex: Map[T, Int],
+  indexToId: Seq[T],
   annoyIndex: Pointer,
   dimension: Int
 ) {
@@ -28,40 +32,64 @@ class Annoy(
     Annoy.annoyLib.deleteIndex(annoyIndex)
   }
 
-  def query(vector: Seq[Float], maxReturnSize: Int) = {
+  def query(vector: Seq[Float], maxReturnSize: Int, searchK: Int) = {
     val result = Array.fill(maxReturnSize)(-1)
     val distances = Array.fill(maxReturnSize)(-1.0f)
-    Annoy.annoyLib.getNnsByVector(annoyIndex, vector.toArray, maxReturnSize, -1, result, distances)
+    Annoy.annoyLib.getNnsByVector(annoyIndex, vector.toArray, maxReturnSize, searchK, result, distances)
     result.toList.filter(_ != -1).map(indexToId.apply).zip(distances.toSeq)
   }
 
-  def query(id: Int, maxReturnSize: Int) = {
+  def query(id: T, maxReturnSize: Int, searchK: Int) = {
     idToIndex.get(id).map { index =>
       val result = Array.fill(maxReturnSize)(-1)
       val distances = Array.fill(maxReturnSize)(-1.0f)
-      Annoy.annoyLib.getNnsByItem(annoyIndex, index, maxReturnSize, -1, result, distances)
+      Annoy.annoyLib.getNnsByItem(annoyIndex, index, maxReturnSize, searchK, result, distances)
       result.toList.filter(_ != -1).map(indexToId.apply).zip(distances.toSeq)
     }
   }
 }
 
+object Converters {
+
+  trait KeyConverter[T] {
+    def convert(key: String): T
+  }
+
+  object KeyConverter {
+
+    implicit val intConverter: KeyConverter[Int] = new KeyConverter[Int] {
+      override def convert(key: String): Int = key.toInt
+    }
+
+    implicit val stringConverter: KeyConverter[String] = new KeyConverter[String] {
+      override def convert(key: String): String = key
+    }
+
+    implicit val uuidConverter: KeyConverter[UUID] = new KeyConverter[UUID] {
+      override def convert(key: String): UUID = UUID.fromString(key)
+    }
+  }
+
+}
+
 object Annoy {
+
   val annoyLib = Native.loadLibrary("annoy", classOf[AnnoyLibrary]).asInstanceOf[AnnoyLibrary]
-  
-  def create(
+
+  def create[T](
     inputFile: String,
     numOfTrees: Int,
     outputDir: String = null,
     metric: Metric = Angular,
     verbose: Boolean = false
-  ): Annoy = {
+  )(implicit converter: KeyConverter[T]): Annoy[T] = {
     val diskMode = outputDir != null
-    
+
     if (diskMode) {
       require(File(outputDir).notExists || File(outputDir).isEmpty, "Output directory is not empty.")
       File(outputDir).createIfNotExists(true)
     }
-    
+
     def inputLines = Source.fromFile(inputFile).getLines
 
     val dimension = inputLines.next.split(" ").tail.size
@@ -69,21 +97,20 @@ object Annoy {
       case Angular => annoyLib.createAngular(dimension)
       case Euclidean => annoyLib.createEuclidean(dimension)
     }
-    
+
     annoyLib.verbose(annoyIndex, verbose)
-    
+
     inputLines
       .map(_.split(" "))
       .zipWithIndex
       .foreach {
         case (seq, index) =>
-          val id = seq.head.toInt
           val vector = seq.tail.map(_.toFloat)
           annoyLib.addItem(annoyIndex, index, vector)
       }
-    
+
     annoyLib.build(annoyIndex, numOfTrees)
-    
+
     if (diskMode) {
       (File(outputDir) / "ids").printLines(inputLines.map(_.split(" ").head))
       (File(outputDir) / "dimension").overwrite(dimension.toString)
@@ -95,30 +122,30 @@ object Annoy {
       }
       annoyLib.save(annoyIndex, (File(outputDir) / "annoy-index").pathAsString)
       annoyLib.deleteIndex(annoyIndex)
-      load(outputDir)
+      load[T](outputDir)
     } else {
-      new Annoy(
-        inputLines.map(_.split(" ").head.toInt).zipWithIndex.toMap,
-        inputLines.map(_.split(" ").head.toInt).toSeq,
+      val keys = inputLines.map(entry => converter.convert(entry.split(" ").head)).toSeq
+      new Annoy[T](
+        keys.zipWithIndex.toMap,
+        keys,
         annoyIndex,
         dimension
       )
     }
   }
 
-  def load(annoyDir: String): Annoy = {
-    val ids = (File(annoyDir) / "ids")
-    val idToIndex = ids.lineIterator.toSeq.map(_.toInt).zipWithIndex.toMap
-    val indexToId = ids.lineIterator.toSeq.map(_.toInt)
-    
+  def load[T](annoyDir: String)(implicit converter: KeyConverter[T]): Annoy[T] = {
+    val ids = File(annoyDir) / "ids"
+    val keys = ids.lineIterator.toSeq.map(converter.convert)
+    val idToIndex: Map[T, Int] = keys .zipWithIndex.toMap
+    val indexToId: Seq[T] = keys
     val dimension = (File(annoyDir) / "dimension").lines.head.toInt
     val annoyIndex = (File(annoyDir) / "metric").lines.head match {
       case "Angular" => annoyLib.createAngular(dimension)
       case "Euclidean" => annoyLib.createEuclidean(dimension)
     }
     annoyLib.load(annoyIndex, (File(annoyDir) / "annoy-index").pathAsString)
-    
-    new Annoy(idToIndex, indexToId, annoyIndex, dimension)
+    new Annoy[T](idToIndex, indexToId, annoyIndex, dimension)
   }
 }
 
