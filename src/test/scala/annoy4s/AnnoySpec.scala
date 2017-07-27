@@ -14,8 +14,10 @@
 
 package annoy4s
 
-import org.scalatest._
 import better.files._
+import org.scalatest._
+
+import scala.io.Source
 
 class AnnoySpec extends FlatSpec with Matchers {
   
@@ -142,6 +144,23 @@ class AnnoySpec extends FlatSpec with Matchers {
 
     annoyReload.close()
     outputDir.delete()
+  }
+
+  it should "return more accurate results for a higher search_K" in {
+
+    val tmpFile = File.newTemporaryFile()
+    tmpFile.toJava.deleteOnExit()
+
+    tmpFile
+      .appendLines(Source
+        .fromInputStream(getClass.getResourceAsStream("/searchk-test-vector"))
+        .getLines().toSeq: _*)
+
+    val index = Annoy.create[Int](tmpFile.pathAsString, numOfTrees = 2)
+
+    index.query(1, maxReturnSize = 10, searchK = 2).get.map(_._1) shouldBe List(1, 54, 55, 60, 76, 8, 32, 33)
+    index.query(1, maxReturnSize = 10, searchK = -1).get.map(_._1) shouldBe List(1, 69, 39, 87, 54, 29, 62, 55, 21, 35)
+
   }
 
 }
