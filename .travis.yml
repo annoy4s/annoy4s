@@ -1,5 +1,21 @@
 language: scala
+jdk: oraclejdk8
+os:
+  - linux
+  - osx
+cache:
+  directories:
+    - $HOME/.ivy2/cache
+    - $HOME/.sbt
+before_cache:
+  - find $HOME/.ivy2/cache -name "ivydata-*.properties" -print -delete
+  - find $HOME/.sbt        -name "*.lock"               -print -delete
 script:
   - sbt compileNative
-  - sbt test
-jdk: oraclejdk8
+  - sbt +test
+deploy:
+  provider: script
+  skip_cleanup: true
+  script: sbt +publish
+  on:
+    tags: true

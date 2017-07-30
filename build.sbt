@@ -3,15 +3,15 @@ import com.sun.jna.Platform
 val compileNative = taskKey[Unit]("Compile cpp into shared library.")
 
 lazy val root = (project in file(".")).settings(
-  name := "annoy4s",
-  version := "0.3.0-SNAPSHOT",
-  scalaVersion := "2.11.8",
+  name := (if (Platform.isMac) "annoy4s-mac" else "annoy4s"),
+  version := "0.4.0",
+  scalaVersion := "2.11.11",
+  crossScalaVersions := Seq("2.11.11", "2.12.3"),
   libraryDependencies ++= Seq(
-    "com.github.pathikrit" %% "better-files" % "2.16.0",
+    "com.github.pathikrit" %% "better-files" % "2.17.1",
     "net.java.dev.jna" % "jna" % "4.2.2",
-    "org.slf4s" %% "slf4s-api" % "1.7.12",
-    //for test
-    "org.scalatest" %% "scalatest" % "2.2.6" % "test",
+    "org.slf4s" %% "slf4s-api" % "1.7.25",
+    "org.scalatest" %% "scalatest" % "3.0.1" % "test",
     "org.slf4j" % "slf4j-simple" % "1.7.14" % "test"
   ),
   fork := true,
