@@ -10,9 +10,3 @@ before_cache:
 script:
   - sbt compileNative
   - sbt +test
-deploy:
-  provider: script
-  skip_cleanup: true
-  script: sbt +publish
-  on:
-    tags: true

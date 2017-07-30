@@ -3,7 +3,7 @@ import com.sun.jna.Platform
 val compileNative = taskKey[Unit]("Compile cpp into shared library.")
 
 lazy val root = (project in file(".")).settings(
-  name := (if (Platform.isMac) "annoy4s-mac" else "annoy4s"),
+  name := "annoy4s",
   version := "0.4.0",
   scalaVersion := "2.11.11",
   crossScalaVersions := Seq("2.11.11", "2.12.3"),
