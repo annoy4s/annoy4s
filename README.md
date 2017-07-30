@@ -7,19 +7,7 @@ A JNA wrapper around [spotify/annoy](https://github.com/spotify/annoy) which cal
 
 ## Installation
 
-For linux-x86-64 users, just add the library directly from bintray:
-```
-resolvers += Resolver.bintrayRepo("pishen", "maven")
-
-libraryDependencies += "net.pishen" %% "annoy4s" % version
-```
-
-You have to compile the native library by yourself if you met an error like this when using annoy4s:
-```
-java.lang.UnsatisfiedLinkError: Unable to load library 'annoy': Native library
-```
-
-To compile the native library and install annoy4s on local machine, you have to
+Since the C++ library is platform-dependent, you'll have to compile the C++ part by yourself on your machine:
 
 1. Clone this repository.
 2. Check the values of `organization` and `version` in `build.sbt`, you may change it to the value you want, it's recommended to let `version` have the `-SNAPSHOT` suffix.
@@ -31,6 +19,15 @@ Now you can add the library dependency as (organization and version may be diffe
 ```
 libraryDependencies += "net.pishen" %% "annoy4s" % version
 ```
+
+For people who don't want to publish the Scala part by themselves, a version without native library is available on Bintray:
+```
+resolvers += Resolver.bintrayRepo("pishen", "maven")
+
+libraryDependencies += "net.pishen" %% "annoy4s" % "0.4.0"
+```
+
+You still have to generate the library file using `compileNative` as above. The `g++` command will indicate the output library file (`libannoy.so` or `libannoy.dylib`) location. Put this file on the [library search paths](http://java-native-access.github.io/jna/4.4.0/javadoc/com/sun/jna/NativeLibrary.html#library_search_paths) for JNA to find it.
 
 ## Usage
 
