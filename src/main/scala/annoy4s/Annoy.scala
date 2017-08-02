@@ -51,6 +51,17 @@ class Annoy[T](
       result.toList.filter(_ != -1).map(indexToId.apply).zip(distances.toSeq)
     }
   }
+
+  def getItem(id: T): Option[Seq[Float]] = {
+    idToIndex.get(id).flatMap { index =>
+      val result = Array.fill(dimension)(Float.NegativeInfinity)
+      Annoy.annoyLib.getItem(annoyIndex, index, result)
+      result
+        .find(_ != Float.NegativeInfinity)
+        .map(_ => result.toSeq)
+    }
+  }
+
 }
 
 object Converters {
@@ -100,6 +111,7 @@ object Annoy {
     val annoyIndex = metric match {
       case Angular => annoyLib.createAngular(dimension)
       case Euclidean => annoyLib.createEuclidean(dimension)
+      case Manhattan => annoyLib.createManhattan(dimension)
     }
 
     annoyLib.verbose(annoyIndex, verbose)
@@ -122,6 +134,7 @@ object Annoy {
         metric match {
           case Angular => "Angular"
           case Euclidean => "Euclidean"
+          case Manhattan => "Manhattan"
         }
       }
       annoyLib.save(annoyIndex, (File(outputDir) / "annoy-index").pathAsString)
@@ -147,6 +160,7 @@ object Annoy {
     val annoyIndex = (File(annoyDir) / "metric").lines.head match {
       case "Angular" => annoyLib.createAngular(dimension)
       case "Euclidean" => annoyLib.createEuclidean(dimension)
+      case "Manhattan" => annoyLib.createManhattan(dimension)
     }
     annoyLib.load(annoyIndex, (File(annoyDir) / "annoy-index").pathAsString)
     new Annoy[T](idToIndex, indexToId, annoyIndex, dimension)
@@ -156,3 +170,4 @@ object Annoy {
 sealed trait Metric
 case object Angular extends Metric
 case object Euclidean extends Metric
+case object Manhattan extends Metric
