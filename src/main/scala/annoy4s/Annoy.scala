@@ -76,6 +76,10 @@ object Converters {
       override def convert(key: String): Int = key.toInt
     }
 
+    implicit val longConverter: KeyConverter[Long] = new KeyConverter[Long] {
+      override def convert(key: String): Long = key.toLong
+    }
+
     implicit val stringConverter: KeyConverter[String] = new KeyConverter[String] {
       override def convert(key: String): String = key
     }
