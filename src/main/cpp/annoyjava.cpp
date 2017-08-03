@@ -24,6 +24,10 @@ AnnoyIndexInterface<int32_t, float> *createEuclidean(int f) {
   return new AnnoyIndex<int32_t, float, Euclidean, Kiss64Random>(f);
 }
 
+AnnoyIndexInterface<int32_t, float> *createManhattan(int f) {
+  return new AnnoyIndex<int32_t, float, Manhattan, Kiss64Random>(f);
+}
+
 void deleteIndex(AnnoyIndexInterface<int32_t, float> *ptr) {
   delete ptr;
 }
