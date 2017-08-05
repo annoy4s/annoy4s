@@ -28,8 +28,6 @@ lazy val root = (project in file(".")).settings(
         <id>pishen</id>
         <name>Pishen Tsai</name>
       </developer>
-    </developers>
-    <developers>
       <developer>
         <id>nemo83</id>
         <name>Giovanni Gargiulo</name>
