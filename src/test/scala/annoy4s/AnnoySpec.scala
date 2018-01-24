@@ -224,4 +224,45 @@ class AnnoySpec extends FlatSpec with Matchers {
 
   }
 
+  // Hamming tests
+
+  def getHammingInputFile = {
+    val inputFile = File.newTemporaryFile()
+    inputFile.toJava.deleteOnExit()
+    inputFile.appendLines(Seq(
+      "a 1 0 0 0",
+      "b 1 1 0 0",
+      "c 1 1 0 1",
+      "d 0 1 1 1"
+    ):_*)
+
+    inputFile
+  }
+
+  def checkHammingResult(res: Option[Seq[(String, Float)]]) = {
+    res.get.map(_._1) shouldBe Seq("a", "b", "c", "d")
+    res.get.map(_._2).zip(Seq(0.0f, 1.0f, 2.0f, 4.0f)).foreach{
+      case (a, b) => a shouldBe b
+    }
+  }
+
+  it should "create/load and query Hamming file index" in {
+
+    val inputFile = getHammingInputFile
+
+    val outputDir = File.newTemporaryDirectory()
+
+    val annoy = Annoy.create[String](inputFile.pathAsString, 10, outputDir.pathAsString, Manhattan)
+    checkHammingResult(annoy.query("a", 4))
+
+    annoy.close()
+
+    val annoyReload = Annoy.load[String](outputDir.pathAsString)
+    checkHammingResult(annoyReload.query("a", 4))
+
+    annoyReload.close()
+    outputDir.delete()
+
+  }
+
 }

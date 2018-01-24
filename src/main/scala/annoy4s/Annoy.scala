@@ -116,6 +116,7 @@ object Annoy {
       case Angular => annoyLib.createAngular(dimension)
       case Euclidean => annoyLib.createEuclidean(dimension)
       case Manhattan => annoyLib.createManhattan(dimension)
+      case Hamming => annoyLib.createHamming(dimension)
     }
 
     annoyLib.verbose(annoyIndex, verbose)
@@ -139,6 +140,7 @@ object Annoy {
           case Angular => "Angular"
           case Euclidean => "Euclidean"
           case Manhattan => "Manhattan"
+          case Hamming => "Hamming"
         }
       }
       annoyLib.save(annoyIndex, (File(outputDir) / "annoy-index").pathAsString)
@@ -165,6 +167,7 @@ object Annoy {
       case "Angular" => annoyLib.createAngular(dimension)
       case "Euclidean" => annoyLib.createEuclidean(dimension)
       case "Manhattan" => annoyLib.createManhattan(dimension)
+      case "Hamming" => annoyLib.createHamming(dimension)
     }
     annoyLib.load(annoyIndex, (File(annoyDir) / "annoy-index").pathAsString)
     new Annoy[T](idToIndex, indexToId, annoyIndex, dimension)
@@ -175,3 +178,4 @@ sealed trait Metric
 case object Angular extends Metric
 case object Euclidean extends Metric
 case object Manhattan extends Metric
+case object Hamming extends Metric

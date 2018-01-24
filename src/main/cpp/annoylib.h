@@ -12,21 +12,30 @@
 // License for the specific language governing permissions and limitations under
 // the License.
 
+
 #ifndef ANNOYLIB_H
 #define ANNOYLIB_H
 
 #include <stdio.h>
 #include <string>
 #include <sys/stat.h>
+#ifndef _MSC_VER
 #include <unistd.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <fcntl.h>
 #include <stddef.h>
+#if defined(_MSC_VER) && _MSC_VER == 1500
+typedef unsigned char     uint8_t;
+typedef signed __int32    int32_t;
+#else
 #include <stdint.h>
+#endif
 
-#ifdef __MINGW32__
+#ifdef _MSC_VER
+#define NOMINMAX
 #include "mman.h"
 #include <windows.h>
 #else
@@ -40,6 +49,11 @@
 #include <queue>
 #include <limits>
 
+#ifdef _MSC_VER
+// Needed for Visual Studio to disable runtime checks for mempcy
+#pragma runtime_checks("s", off)
+#endif
+
 // This allows others to supply their own logger / error printer without
 // requiring Annoy to import their headers. See RcppAnnoy for a use case.
 #ifndef __ERROR_PRINTER_OVERRIDE__
@@ -48,9 +62,34 @@
   #define showUpdate(...) { __ERROR_PRINTER_OVERRIDE__( __VA_ARGS__ ); }
 #endif
 
+
+#ifndef _MSC_VER
+#define popcount __builtin_popcountll
+#else
+#define popcount __popcnt64
+#endif
+
+#ifndef NO_MANUAL_VECTORIZATION
+#if defined(__AVX__) && defined (__SSE__) && defined(__SSE2__) && defined(__SSE3__)
+#define USE_AVX
+#endif
+#endif
+
+#ifdef USE_AVX
+#if defined(_MSC_VER)
+#include <intrin.h>
+#elif defined(__GNUC__)
+#include <x86intrin.h>
+#endif
+#endif
+
 #ifndef ANNOY_NODE_ATTRIBUTE
-  #define ANNOY_NODE_ATTRIBUTE __attribute__((__packed__))
-  // TODO: this is turned on by default, but may not work for all architectures! Need to investigate.
+    #ifndef _MSC_VER
+        #define ANNOY_NODE_ATTRIBUTE __attribute__((__packed__))
+        // TODO: this is turned on by default, but may not work for all architectures! Need to investigate.
+    #else
+        #define ANNOY_NODE_ATTRIBUTE
+    #endif
 #endif
 
 
@@ -59,6 +98,8 @@ using std::string;
 using std::pair;
 using std::numeric_limits;
 using std::make_pair;
+
+namespace {
 
 template<typename T>
 inline T get_norm(T* v, int f) {
@@ -75,6 +116,135 @@ inline void normalize(T* v, int f) {
     v[z] /= norm;
 }
 
+template<typename T>
+inline T dot(const T* x, const T* y, int f) {
+  T s = 0;
+  for (int z = 0; z < f; z++) {
+    s += (*x) * (*y);
+    x++;
+    y++;
+  }
+  return s;
+}
+
+template<typename T>
+inline void dot3(const T* x, const T* y, int f, T* xx, T* yy, T* xy) {
+  // This function computes x*y as well as x*x and y*y at the same time
+  *xx = 0;
+  *yy = 0;
+  *xy = 0;
+  for (int z = 0; z < f; z++) {
+    *xx += (*x) * (*x);
+    *yy += (*y) * (*y);
+    *xy += (*x) * (*y);
+    x++;
+    y++;
+  }
+}
+
+
+#ifdef USE_AVX
+// Horizontal single sum of 256bit vector.
+inline float hsum256_ps_avx(__m256 v) {
+  const __m128 x128 = _mm_add_ps(_mm256_extractf128_ps(v, 1), _mm256_castps256_ps128(v));
+  const __m128 x64 = _mm_add_ps(x128, _mm_movehl_ps(x128, x128));
+  const __m128 x32 = _mm_add_ss(x64, _mm_shuffle_ps(x64, x64, 0x55));
+  return _mm_cvtss_f32(x32);
+}
+
+template<>
+inline float dot<float>(const float* x, const float *y, int f) {
+  float result = 0;
+  if (f > 7) {
+    __m256 d = _mm256_setzero_ps();
+    for (; f > 7; f -= 8) {
+      d = _mm256_add_ps(d, _mm256_mul_ps(_mm256_loadu_ps(x), _mm256_loadu_ps(y)));
+      x += 8;
+      y += 8;
+    }
+    // Sum all floats in dot register.
+    result += hsum256_ps_avx(d);
+  }
+  // Don't forget the remaining values.
+  for (; f > 0; f--) {
+    result += *x * *y;
+    x++;
+    y++;
+  }
+  return result;
+}
+
+template<>
+inline void dot3<float>(const float* x, const float *y, int f, float* xx, float* yy, float* xy) {
+  *xx = 0;
+  *yy = 0;
+  *xy = 0;
+  if (f > 7) {
+    __m256 xx_vec = _mm256_setzero_ps(), yy_vec = _mm256_setzero_ps(), xy_vec = _mm256_setzero_ps();
+    for (; f > 7; f -= 8) {
+      const __m256 a = _mm256_loadu_ps(x);
+      const __m256 b = _mm256_loadu_ps(y);
+      xx_vec = _mm256_add_ps(xx_vec, _mm256_mul_ps(a, a));
+      yy_vec = _mm256_add_ps(yy_vec, _mm256_mul_ps(b, b));
+      xy_vec = _mm256_add_ps(xy_vec, _mm256_mul_ps(a, b));
+      x += 8;
+      y += 8;
+    }
+    // Sum all floats in xx, yy and xy register.
+    *xx = hsum256_ps_avx(xx_vec);
+    *yy = hsum256_ps_avx(yy_vec);
+    *xy = hsum256_ps_avx(xy_vec);
+  }
+  // Don't forget the remaining values.
+  for (; f > 0; f--) {
+    *xx += (*x) * (*x);
+    *yy += (*y) * (*y);
+    *xy += (*x) * (*y);
+    x++;
+    y++;
+  }
+}
+
+template<>
+inline float get_norm<float>(float *v, int f) {
+  float sq_norm = 0;
+  int i = f;
+  if (f > 7) {
+    __m256 norm = _mm256_setzero_ps();
+    for (; i > 7; i -= 8) {
+      const __m256 v_v = _mm256_loadu_ps(v);
+      norm = _mm256_add_ps(norm, _mm256_mul_ps(v_v, v_v));
+      v += 8;
+    }
+    // Sum all floats in norm register.
+    sq_norm = hsum256_ps_avx(norm);
+  }
+  // Don't forget the remaining values.
+  for (; i > 0; i--) {
+    sq_norm += *v * *v;
+    v++;
+  }
+  return sqrt(sq_norm);
+}
+
+template<>
+inline void normalize<float>(float *v, int f) {
+  float norm = get_norm(v, f);
+  __m256 v_norm = _mm256_set1_ps(norm);
+
+  int i = f;
+  for (; i > 7; i -= 8) {
+    _mm256_storeu_ps(v, _mm256_div_ps(_mm256_loadu_ps(v), v_norm));
+    v += 8;
+  }
+  // Don't forget the remaining values.
+  for (; i > 0; i--) {
+    *v /= norm;
+    v++;
+  }
+}
+#endif
+
 template<typename T, typename Random, typename Distance, typename Node>
 inline void two_means(const vector<Node*>& nodes, int f, Random& random, bool cosine, T* iv, T* jv) {
   /*
@@ -89,8 +259,8 @@ inline void two_means(const vector<Node*>& nodes, int f, Random& random, bool co
   size_t i = random.index(count);
   size_t j = random.index(count-1);
   j += (j >= i); // ensure that i != j
-  std::copy(&nodes[i]->v[0], &nodes[i]->v[f], &iv[0]);
-  std::copy(&nodes[j]->v[0], &nodes[j]->v[f], &jv[0]);
+  memcpy(iv, nodes[i]->v, f * sizeof(T));
+  memcpy(jv, nodes[j]->v, f * sizeof(T));
   if (cosine) { normalize(&iv[0], f); normalize(&jv[0], f); }
 
   int ic = 1, jc = 1;
@@ -111,6 +281,7 @@ inline void two_means(const vector<Node*>& nodes, int f, Random& random, bool co
   }
 }
 
+} // namespace
 
 struct Angular {
   template<typename S, typename T>
@@ -138,22 +309,15 @@ struct Angular {
     // want to calculate (a/|a| - b/|b|)^2
     // = a^2 / a^2 + b^2 / b^2 - 2ab/|a||b|
     // = 2 - 2cos
-    T pp = 0, qq = 0, pq = 0;
-    for (int z = 0; z < f; z++, x++, y++) {
-      pp += (*x) * (*x);
-      qq += (*y) * (*y);
-      pq += (*x) * (*y);
-    }
+    T pp, qq, pq;
+    dot3(x, y, f, &pp, &qq, &pq);
     T ppqq = pp * qq;
     if (ppqq > 0) return 2.0 - 2.0 * pq / sqrt(ppqq);
     else return 2.0; // cos is 0
   }
   template<typename S, typename T>
   static inline T margin(const Node<S, T>* n, const T* y, int f) {
-    T dot = 0;
-    for (int z = 0; z < f; z++)
-      dot += n->v[z] * y[z];
-    return dot;
+    return dot(n->v, y, f);
   }
   template<typename S, typename T, typename Random>
   static inline bool side(const Node<S, T>* n, const T* y, int f, Random& random) {
@@ -178,8 +342,100 @@ struct Angular {
     // so we have to make sure it's a positive number.
     return sqrt(std::max(distance, T(0)));
   }
+  template<typename T>
+  static inline T pq_distance(T distance, T margin, int child_nr) {
+    if (child_nr == 0)
+      margin = -margin;
+    return std::min(distance, margin);
+  }
+  template<typename T>
+  static inline T pq_initial_value() {
+    return numeric_limits<T>::infinity();
+  }
   static const char* name() {
     return "angular";
+  }
+};
+
+struct Hamming {
+
+  template<typename S, typename T>
+  struct ANNOY_NODE_ATTRIBUTE Node {
+    S n_descendants;
+    S children[2];
+    T v[1];
+  };
+
+  static const size_t max_iterations = 20;
+
+  template<typename T>
+  static inline T pq_distance(T distance, T margin, int child_nr) {
+    return distance - (margin != (unsigned int) child_nr);
+  }
+
+  template<typename T>
+  static inline T pq_initial_value() {
+    return 0;
+  }
+  template<typename T>
+  static inline T distance(const T* x, const T* y, int f) {
+    size_t dist = 0;
+    for (int i = 0; i < f; i++) {
+      dist += popcount(x[i] ^ y[i]);
+    }
+    return dist;
+  }
+  template<typename S, typename T>
+  static inline bool margin(const Node<S, T>* n, const T* y, int f) {
+    static const size_t n_bits = sizeof(T) * 8;
+    T chunk = n->v[0] / n_bits;
+
+    return (y[chunk] & (static_cast<T>(1) << (n_bits - 1 - (n->v[0] % n_bits)))) != 0;
+  }
+  template<typename S, typename T, typename Random>
+  static inline bool side(const Node<S, T>* n, const T* y, int f, Random& random) {
+    return margin(n, y, f);
+  }
+  template<typename S, typename T, typename Random>
+  static inline void create_split(const vector<Node<S, T>*>& nodes, int f, Random& random, Node<S, T>* n) {
+    size_t cur_size = 0;
+    size_t i = 0;
+    for (; i < max_iterations; i++) {
+      // choose random position to split at
+      n->v[0] = random.index(f);
+      cur_size = 0;
+      for (typename vector<Node<S, T>*>::const_iterator it = nodes.begin(); it != nodes.end(); ++it) {
+        if (margin(n, (*it)->v, f)) {
+          cur_size++;
+        }
+      }
+      if (cur_size > 0 && cur_size < nodes.size()) {
+        break;
+      }
+    }
+    // brute-force search for splitting coordinate
+    if (i == max_iterations) {
+      int j = 0;
+      for (; j < f; j++) {
+        n->v[0] = j;
+        cur_size = 0;
+	for (typename vector<Node<S, T>*>::const_iterator it = nodes.begin(); it != nodes.end(); ++it) {
+          if (margin(n, (*it)->v, f)) {
+            cur_size++;
+          }
+        }
+        if (cur_size > 0 && cur_size < nodes.size()) {
+          break;
+        }
+      }
+    }
+  }
+  template<typename T>
+  static inline T normalized_distance(T distance) {
+    return distance;
+  }
+  static const char* name() {
+    return "hamming";
   }
 };
 
@@ -193,10 +449,7 @@ struct Minkowski {
   };
   template<typename S, typename T>
   static inline T margin(const Node<S, T>* n, const T* y, int f) {
-    T dot = n->a;
-    for (int z = 0; z < f; z++)
-      dot += n->v[z] * y[z];
-    return dot;
+    return n->a + dot(n->v, y, f);
   }
   template<typename S, typename T, typename Random>
   static inline bool side(const Node<S, T>* n, const T* y, int f, Random& random) {
@@ -206,16 +459,25 @@ struct Minkowski {
     else
       return random.flip();
   }
+  template<typename T>
+  static inline T pq_distance(T distance, T margin, int child_nr) {
+    if (child_nr == 0)
+      margin = -margin;
+    return std::min(distance, margin);
+  }
+  template<typename T>
+  static inline T pq_initial_value() {
+    return numeric_limits<T>::infinity();
+  }
 };
 
 
 struct Euclidean : Minkowski{
   template<typename T>
   static inline T distance(const T* x, const T* y, int f) {
-    T d = 0.0;
-    for (int i = 0; i < f; i++, x++, y++)
-      d += ((*x) - (*y)) * ((*x) - (*y));
-    return d;
+    T pp, qq, pq;
+    dot3(x, y, f, &pp, &qq, &pq);
+    return pp + qq - 2*pq;
   }
   template<typename S, typename T, typename Random>
   static inline void create_split(const vector<Node<S, T>*>& nodes, int f, Random& random, Node<S, T>* n) {
@@ -246,6 +508,32 @@ struct Manhattan : Minkowski{
       d += fabs((*x) - (*y));
     return d;
   }
+#ifdef USE_AVX
+  static inline float distance(const float* x, const float* y, int f) {
+    float result = 0;
+    int i = f;
+    if (f > 7) {
+      __m256 manhattan = _mm256_setzero_ps();
+      __m256 minus_zero = _mm256_set1_ps(-0.0f);
+      for (; i > 7; i -= 8) {
+        const __m256 x_minus_y = _mm256_sub_ps(_mm256_loadu_ps(x), _mm256_loadu_ps(y));
+        const __m256 distance = _mm256_andnot_ps(minus_zero, x_minus_y); // Absolute value of x_minus_y (forces sign bit to zero)
+        manhattan = _mm256_add_ps(manhattan, distance);
+        x += 8;
+        y += 8;
+      }
+      // Sum all floats in manhattan register.
+      result = hsum256_ps_avx(manhattan);
+    }
+    // Don't forget the remaining values.
+    for (; i > 0; i--) {
+      result += fabsf(*x - *y);
+      x++;
+      y++;
+    }
+    return result;
+  }
+#endif
   template<typename S, typename T, typename Random>
   static inline void create_split(const vector<Node<S, T>*>& nodes, int f, Random& random, Node<S, T>* n) {
     vector<T> best_iv(f, 0), best_jv(f, 0);
@@ -363,8 +651,10 @@ public:
       if (_verbose) showUpdate("pass %zd...\n", _roots.size());
 
       vector<S> indices;
-      for (S i = 0; i < _n_items; i++)
-        indices.push_back(i);
+      for (S i = 0; i < _n_items; i++) {
+	if (_get(i)->n_descendants >= 1) // Issue #223
+          indices.push_back(i);
+      }
 
       _roots.push_back(_make_tree(indices));
     }
@@ -425,9 +715,11 @@ public:
   }
 
   bool load(const char* filename) {
-    _fd = open(filename, O_RDONLY, (mode_t)0400);
-    if (_fd == -1)
+    _fd = open(filename, O_RDONLY, (int)0400);
+    if (_fd == -1) {
+      _fd = 0;
       return false;
+    }
     off_t size = lseek(_fd, 0, SEEK_END);
 #ifdef MAP_POPULATE
     _nodes = (Node*)mmap(
@@ -440,6 +732,7 @@ public:
     _n_nodes = (S)(size / _s);
 
     // Find the roots by scanning the end of the file and taking the nodes with most descendants
+    _roots.clear();
     S m = -1;
     for (S i = _n_nodes - 1; i >= 0; i--) {
       S k = _get(i)->n_descendants;
@@ -482,7 +775,7 @@ public:
 
   void get_item(S item, T* v) {
     Node* m = _get(item);
-    std::copy(&m->v[0], &m->v[_f], v);
+    memcpy(v, m->v, _f * sizeof(T));
   }
 
   void set_seed(int seed) {
@@ -518,7 +811,8 @@ protected:
 
       // Using std::copy instead of a loop seems to resolve issues #3 and #13,
       // probably because gcc 4.8 goes overboard with optimizations.
-      std::copy(indices.begin(), indices.end(), m->children);
+      // Using memcpy instead of std::copy for MSVC compatibility. #235
+      memcpy(m->children, &indices[0], indices.size() * sizeof(S));
       return item;
     }
 
@@ -584,7 +878,7 @@ protected:
       search_k = n * _roots.size(); // slightly arbitrary default value
 
     for (size_t i = 0; i < _roots.size(); i++) {
-      q.push(make_pair(numeric_limits<T>::infinity(), _roots[i]));
+      q.push(make_pair(Distance::template pq_initial_value<T>(), _roots[i]));
     }
 
     vector<S> nns;
@@ -601,8 +895,8 @@ protected:
         nns.insert(nns.end(), dst, &dst[nd->n_descendants]);
       } else {
         T margin = D::margin(nd, v, _f);
-        q.push(make_pair(std::min(d, +margin), nd->children[1]));
-        q.push(make_pair(std::min(d, -margin), nd->children[0]));
+        q.push(make_pair(D::pq_distance(d, margin, 1), nd->children[1]));
+        q.push(make_pair(D::pq_distance(d, margin, 0), nd->children[0]));
       }
     }
 
