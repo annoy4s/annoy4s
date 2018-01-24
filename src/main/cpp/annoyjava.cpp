@@ -28,8 +28,8 @@ AnnoyIndexInterface<int32_t, float> *createManhattan(int f) {
   return new AnnoyIndex<int32_t, float, Manhattan, Kiss64Random>(f);
 }
 
-AnnoyIndexInterface<int32_t, uint64_t> *createHamming(int f) {
-  return new AnnoyIndex<int32_t, uint64_t, Hamming, Kiss64Random>(f);
+AnnoyIndexInterface<int32_t, float> *createHamming(int f) {
+  return new HammingWrapper<Kiss64Random>(f);
 }
 
 void deleteIndex(AnnoyIndexInterface<int32_t, float> *ptr) {

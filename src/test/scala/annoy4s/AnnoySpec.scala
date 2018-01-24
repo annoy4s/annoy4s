@@ -22,7 +22,7 @@ import scala.io.Source
 import scala.util.Random
 
 class AnnoySpec extends FlatSpec with Matchers {
-  
+
   def getEuclideanInputFile = {
     val inputFile = File.newTemporaryFile()
     inputFile.toJava.deleteOnExit()
@@ -32,22 +32,22 @@ class AnnoySpec extends FlatSpec with Matchers {
       "12 2.0 2.0",
       "13 3.0 2.0"
     ):_*)
-    
+
     inputFile
   }
-  
+
   def checkEuclideanResult(res: Option[Seq[(Int, Float)]]) = {
     res.get.map(_._1) shouldBe Seq(10, 11, 12, 13)
     res.get.map(_._2).zip(Seq(0.0f, 1.0f, 1.414f, 2.236f)).foreach{
       case (a, b) => a shouldBe b +- 0.001f
     }
   }
-  
+
   "Annoy" should "create/load and query Euclidean file index" in {
     val inputFile = getEuclideanInputFile
-    
+
     val outputDir = File.newTemporaryDirectory()
-    
+
     val annoy = Annoy.create[Int](inputFile.pathAsString, 10, outputDir.pathAsString, Euclidean)
     checkEuclideanResult(annoy.query(10, 4))
 
@@ -252,7 +252,7 @@ class AnnoySpec extends FlatSpec with Matchers {
 
     val outputDir = File.newTemporaryDirectory()
 
-    val annoy = Annoy.create[String](inputFile.pathAsString, 10, outputDir.pathAsString, Manhattan)
+    val annoy = Annoy.create[String](inputFile.pathAsString, 10, outputDir.pathAsString, Hamming)
     checkHammingResult(annoy.query("a", 4))
 
     annoy.close()
