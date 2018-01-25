@@ -13,3 +13,6 @@ project/boot/
 project/plugins/project/
 
 .idea
+
+src/main/resources/darwin/
+src/main/resources/linux-x86-64/
