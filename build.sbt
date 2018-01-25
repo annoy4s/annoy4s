@@ -6,7 +6,7 @@ lazy val root = (project in file(".")).settings(
   name := "annoy4s",
   version := "0.6.0",
   scalaVersion := "2.11.11",
-  crossScalaVersions := Seq("2.11.11", "2.12.3"),
+  crossScalaVersions := Seq("2.11.11", "2.12.4"),
   libraryDependencies ++= Seq(
     "com.github.pathikrit" %% "better-files" % "2.17.1",
     "net.java.dev.jna" % "jna" % "4.2.2",
