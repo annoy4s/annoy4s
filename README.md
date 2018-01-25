@@ -50,7 +50,7 @@ val result: Option[Seq[(Int, Float)]] = annoy.query(itemId, maxReturnSize = 30)
 2 1.2 0.8 0.2
 ```
 * `<item id>` could be `Int`, `Long`, `String`, or `UUID`, just change the type parameter at `Annoy.create[T]`. You can also implement a `KeyConverter[T]` by yourself to support your own type.
-* `metric` could be `Euclidean`, `Angular`, or `Manhattan`.
+* `metric` could be `Euclidean`, `Angular`, `Manhattan` or `Hamming`.
 * `result` is a tuple list of id and distances, where the query item is itself contained.
 
 To use the index in disk mode, one need to provide an `outputDir`:

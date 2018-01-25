@@ -20,6 +20,7 @@ trait AnnoyLibrary extends Library {
   def createAngular(f: Int): Pointer
   def createEuclidean(f: Int): Pointer
   def createManhattan(f: Int): Pointer
+  def createHamming(f: Int): Pointer
   def deleteIndex(ptr: Pointer): Unit
   def addItem(ptr: Pointer, item: Int, w: Array[Float]): Unit
   def build(ptr: Pointer, q: Int): Unit
