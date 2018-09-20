@@ -4,15 +4,15 @@ val compileNative = taskKey[Unit]("Compile cpp into shared library.")
 
 lazy val root = (project in file(".")).settings(
   name := "annoy4s",
-  version := "0.6.0",
-  scalaVersion := "2.11.11",
-  crossScalaVersions := Seq("2.11.11", "2.12.4"),
+  version := "0.7.0",
+  scalaVersion := "2.11.12",
+  crossScalaVersions := Seq("2.11.12", "2.12.6"),
   libraryDependencies ++= Seq(
-    "com.github.pathikrit" %% "better-files" % "2.17.1",
-    "net.java.dev.jna" % "jna" % "4.2.2",
+    "com.github.pathikrit" %% "better-files" % "3.6.0",
+    "net.java.dev.jna" % "jna" % "4.5.2",
     "org.slf4s" %% "slf4s-api" % "1.7.25",
-    "org.scalatest" %% "scalatest" % "3.0.1" % "test",
-    "org.slf4j" % "slf4j-simple" % "1.7.14" % "test"
+    "org.scalatest" %% "scalatest" % "3.0.5" % "test",
+    "org.slf4j" % "slf4j-simple" % "1.7.25" % "test"
   ),
   fork := true,
   organization := "net.pishen",
