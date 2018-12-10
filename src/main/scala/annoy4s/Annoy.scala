@@ -26,8 +26,12 @@ class Annoy[T](
   idToIndex: Map[T, Int],
   indexToId: Seq[T],
   annoyIndex: Pointer,
-  dimension: Int
+  val dimension: Int,
+  val metric: Metric
 ) {
+
+  def indexes = indexToId
+
   def close() = {
     Annoy.annoyLib.deleteIndex(annoyIndex)
   }
@@ -152,7 +156,8 @@ object Annoy {
         keys.zipWithIndex.toMap,
         keys,
         annoyIndex,
-        dimension
+        dimension,
+        metric
       )
     }
   }
@@ -160,17 +165,17 @@ object Annoy {
   def load[T](annoyDir: String)(implicit converter: KeyConverter[T]): Annoy[T] = {
     val ids = File(annoyDir) / "ids"
     val keys = ids.lineIterator.toSeq.map(converter.convert)
-    val idToIndex: Map[T, Int] = keys .zipWithIndex.toMap
+    val idToIndex: Map[T, Int] = keys.zipWithIndex.toMap
     val indexToId: Seq[T] = keys
     val dimension = (File(annoyDir) / "dimension").lines.head.toInt
-    val annoyIndex = (File(annoyDir) / "metric").lines.head match {
-      case "Angular" => annoyLib.createAngular(dimension)
-      case "Euclidean" => annoyLib.createEuclidean(dimension)
-      case "Manhattan" => annoyLib.createManhattan(dimension)
-      case "Hamming" => annoyLib.createHamming(dimension)
+    val (metric, annoyIndex) = (File(annoyDir) / "metric").lines.head match {
+      case "Angular" => (Angular, annoyLib.createAngular(dimension))
+      case "Euclidean" => (Euclidean, annoyLib.createEuclidean(dimension))
+      case "Manhattan" => (Manhattan, annoyLib.createManhattan(dimension))
+      case "Hamming" => (Hamming, annoyLib.createHamming(dimension))
     }
     annoyLib.load(annoyIndex, (File(annoyDir) / "annoy-index").pathAsString)
-    new Annoy[T](idToIndex, indexToId, annoyIndex, dimension)
+    new Annoy[T](idToIndex, indexToId, annoyIndex, dimension, metric)
   }
 }
 
