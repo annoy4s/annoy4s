@@ -63,10 +63,10 @@ class AnnoySpec extends FlatSpec with Matchers {
 
   private def getInputDimension(inputVectors: InputVectors): Int = inputVectors.head.split(" ").length - 1
 
-  private def getIndexes(inputVectors: InputVectors): Seq[String] = inputVectors.map(_.split(" ").head)
+  private def getIds(inputVectors: InputVectors): Seq[String] = inputVectors.map(_.split(" ").head)
 
   private def checkAnnoy[T](annoy: Annoy[T], inputVectors: InputVectors, metric: Metric)(implicit converter: KeyConverter[T]): Unit = {
-    annoy.indexes shouldBe getIndexes(inputVectors).map(key => converter.convert(key))
+    annoy.ids shouldBe getIds(inputVectors).map(key => converter.convert(key))
     annoy.dimension shouldBe getInputDimension(inputVectors)
     annoy.metric shouldBe metric
   }

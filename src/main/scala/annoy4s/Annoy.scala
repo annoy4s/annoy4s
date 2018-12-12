@@ -30,7 +30,7 @@ class Annoy[T](
   val metric: Metric
 ) {
 
-  def indexes = indexToId
+  def ids = indexToId
 
   def close() = {
     Annoy.annoyLib.deleteIndex(annoyIndex)
