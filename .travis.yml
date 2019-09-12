@@ -1,5 +1,16 @@
 language: scala
-jdk: oraclejdk8
+matrix:
+  include:
+    - scala: 2.11.12
+      jdk: openjdk8
+    - scala: 2.12.10
+      jdk: openjdk8
+    - scala: 2.12.10
+      jdk: oraclejdk11
+    - scala: 2.13.0
+      jdk: openjdk8
+    - scala: 2.13.0
+      jdk: oraclejdk11
 cache:
   directories:
     - $HOME/.ivy2/cache
