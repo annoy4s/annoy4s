@@ -16,3 +16,6 @@ project/plugins/project/
 
 src/main/resources/darwin/
 src/main/resources/linux-x86-64/
+
+.bloop
+.metals
