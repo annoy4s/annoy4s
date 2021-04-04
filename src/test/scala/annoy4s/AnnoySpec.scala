@@ -181,8 +181,8 @@ class AnnoySpec extends FlatSpec with Matchers {
 
     val index = Annoy.create[Int](tmpFile.pathAsString, numOfTrees = 2)
 
-    index.query(1, maxReturnSize = 10, searchK = 2).get.map(_._1) shouldBe List(1, 69, 39, 87, 54, 29, 62, 55, 21, 35)
-    index.query(1, maxReturnSize = 10, searchK = -1).get.map(_._1) shouldBe List(1, 69, 39, 87, 54, 36, 29, 43, 97, 21)
+    index.query(1, maxReturnSize = 10, searchK = 2).get.map(_._1) shouldBe List(1, 54, 55, 60, 76, 8, 32, 33)
+    index.query(1, maxReturnSize = 10, searchK = -1).get.map(_._1) shouldBe List(1, 69, 39, 87, 54, 29, 62, 55, 21, 35)
 
   }
 
