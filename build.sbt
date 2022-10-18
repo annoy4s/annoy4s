@@ -9,7 +9,7 @@ lazy val root = (project in file(".")).settings(
   crossScalaVersions := Seq("2.11.12", "2.12.10", "2.13.5"),
   libraryDependencies ++= Seq(
     "com.github.pathikrit" %% "better-files" % "3.8.0",
-    "net.java.dev.jna" % "jna" % "5.4.0",
+    "net.java.dev.jna" % "jna" % "5.12.1",
     "org.scalatest" %% "scalatest" % "3.0.8" % Test
   ),
   fork := true,
